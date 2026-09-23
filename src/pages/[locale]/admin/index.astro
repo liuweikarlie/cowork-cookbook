@@ -1,0 +1,161 @@
+---
+import { getCollection } from 'astro:content';
+import CookbookLayout from '../../../layouts/CookbookLayout.astro';
+import { locales, text as t, type Locale } from '../../../lib/schema';
+import { personaLabels } from '../../../i18n';
+import { defaults, formatRun, runEconomics } from '../../../lib/benefits';
+import credits from '../../../data/credit-settings.json';
+import { adminEnabled } from '../../../lib/features';
+export function getStaticPaths() { return adminEnabled ? locales.map((locale) => ({ params: { locale }, props: { locale } })) : []; }
+const { locale } = Astro.props as { locale: Locale };
+const recipes = (await getCollection('recipes')).map((entry) => entry.data).sort((a,b) => a.order - b.order);
+const s = {
+  eyebrow: t('Cookbook admin', '食譜管理員', '指南管理员'),
+  title: t('Credits per run', '每次執行的 Credits', '每次执行的 Credits'),
+  lead: t('Set how many Copilot Credits each recipe uses per run, and the price per credit. Every cost-vs-value figure on the site is calculated from these numbers.', '設定每份食譜每次執行使用多少 Copilot Credits，以及每個 Credit 的價格。網站上所有成本與價值數字都依此計算。', '设定每份指南每次执行使用多少 Copilot Credits，以及每个 Credit 的价格。网站上所有成本与价值数字都按此计算。'),
+  how: t('How saving works', '如何儲存', '如何保存'),
+  howBody: t('This is a static website with no login or database, so this page cannot save for everyone by itself. “Preview on this site” applies your numbers in this browser tab only (they reset when you reload). To publish them for all learners, download the file and commit it to the GitHub repository — the site rebuilds automatically.', '這是沒有登入或資料庫的靜態網站，本頁無法直接為所有人儲存。「在本網站預覽」只會在此瀏覽器分頁套用（重新載入即重設）。若要讓所有學員看到，請下載檔案並提交到 GitHub 儲存庫，網站會自動重新建置。', '这是没有登录或数据库的静态网站，本页无法直接为所有人保存。“在本网站预览”只会在此浏览器标签页应用（重新加载即重置）。若要让所有学员看到，请下载文件并提交到 GitHub 仓库，网站会自动重新构建。'),
+  price: t('Price per Copilot Credit (USD)', '每個 Copilot Credit 價格（USD）', '每个 Copilot Credit 价格（USD）'),
+  priceHelp: t('Pay-as-you-go list price is USD 0.01. Use your organization’s price if it differs.', '隨用隨付牌價為 USD 0.01，若貴組織價格不同請自行填入。', '按需付费牌价为 USD 0.01，如贵组织价格不同请自行填入。'),
+  recipe: t('Recipe', '食譜', '指南'),
+  creditsCol: t('Credits per run', '每次執行 Credits', '每次执行 Credits'),
+  cost: t('Cost per run', '每次費用', '每次费用'),
+  value: t('Time value per run', '每次時間價值', '每次时间价值'),
+  ratio: t('Value ÷ cost', '價值 ÷ 費用', '价值 ÷ 费用'),
+  previewBtn: t('Preview on this site (this tab only)', '在本網站預覽（僅此分頁）', '在本网站预览（仅此标签页）'),
+  download: t('Download credit-settings.json', '下載 credit-settings.json', '下载 credit-settings.json'),
+  copy: t('Copy JSON', '複製 JSON', '复制 JSON'),
+  reset: t('Reset to published values', '重設為已發布數值', '重置为已发布数值'),
+  applied: t('Applied in this tab. Open any recipe to see the new cost figures.', '已在此分頁套用。開啟任一食譜即可看到新費用。', '已在此标签页应用。打开任一指南即可看到新费用。'),
+  copied: t('JSON copied.', '已複製 JSON。', '已复制 JSON。'),
+  invalid: t('Enter a number from 0 to the allowed maximum in every field.', '請在每個欄位輸入 0 至上限之間的數字。', '请在每个字段输入 0 至上限之间的数字。'),
+  publish: t('Publish for all learners', '為所有學員發布', '为所有学员发布'),
+  p1: t('Enter the numbers above and select “Download credit-settings.json” (or “Copy JSON”).', '在上方輸入數字，然後選取「下載 credit-settings.json」（或「複製 JSON」）。', '在上方输入数字，然后选择“下载 credit-settings.json”（或“复制 JSON”）。'),
+  p2: t('Open the file in GitHub:', '在 GitHub 開啟檔案：', '在 GitHub 打开文件：'),
+  p3: t('Select the pencil (Edit), replace everything with the new JSON, and choose “Commit changes” to main.', '選取鉛筆（編輯），以新的 JSON 取代全部內容，然後選擇「Commit changes」提交到 main。', '选择铅笔（编辑），用新的 JSON 替换全部内容，然后选择“Commit changes”提交到 main。'),
+  p4: t('GitHub Actions rebuilds the site. After a few minutes, reload the site to see the new numbers everywhere.', 'GitHub Actions 會重新建置網站。數分鐘後重新載入即可看到新數字。', 'GitHub Actions 会重新构建网站。数分钟后重新加载即可看到新数字。'),
+  access: t('Anyone can open this page, but only people with write access to the repository can publish changes.', '任何人都能開啟本頁，但只有具儲存庫寫入權限的人才能發布變更。', '任何人都能打开本页，但只有具仓库写入权限的人才能发布更改。'),
+  current: t('Published file', '已發布檔案', '已发布文件'),
+};
+const L = (x: Record<Locale,string>) => x[locale];
+const editUrl = 'https://github.com/liuweikarlie/cowork-cookbook/edit/main/src/data/credit-settings.json';
+---
+<CookbookLayout locale={locale} title={L(s.title)} selected="admin" pagePath="admin/">
+  <article class="admin-page" data-admin data-msg-applied={L(s.applied)} data-msg-copied={L(s.copied)} data-msg-invalid={L(s.invalid)}>
+    <header class="admin-hero">
+      <img src={`${import.meta.env.BASE_URL}cowork-logo.png`} alt="" width="72" height="54" />
+      <div><p class="eyebrow">{L(s.eyebrow)}</p><h1>{L(s.title)}</h1><p class="lead">{L(s.lead)}</p></div>
+    </header>
+    <details class="admin-note" open><summary>{L(s.how)}</summary><p>{L(s.howBody)}</p><p class="muted"><small>{L(s.access)}</small></p></details>
+    <form id="admin-form" class="admin-form" novalidate>
+      <div class="field">
+        <label for="admin-creditPrice">{L(s.price)}<small>{L(s.priceHelp)}</small></label>
+        <input id="admin-creditPrice" name="creditPrice" type="number" min="0" max="1" step="0.001" value={credits.creditPrice} required />
+      </div>
+      <div class="table-scroll">
+        <table class="run-table admin-table">
+          <thead><tr><th scope="col">{L(s.recipe)}</th><th scope="col">{L(s.creditsCol)}</th><th scope="col">{L(s.cost)}</th><th scope="col">{L(s.value)}</th><th scope="col">{L(s.ratio)}</th></tr></thead>
+          <tbody>
+            {recipes.map((recipe) => { const v = formatRun(runEconomics(recipe.persona, defaults), locale); return (
+              <tr data-admin-row={recipe.persona} data-below={v.below}>
+                <th scope="row"><span class="eyebrow">{personaLabels[recipe.persona][locale]}</span><br />{recipe.title[locale]}</th>
+                <td><input aria-label={`${L(s.creditsCol)}: ${recipe.title[locale]}`} id={`admin-${recipe.persona}`} name={recipe.persona} type="number" min="0" max="100000" step="1" value={credits.creditsPerRun[recipe.persona]} required /></td>
+                <td data-admin-key="cost-run">{v['cost-run']}</td>
+                <td data-admin-key="value-run">{v['value-run']}</td>
+                <td data-admin-key="ratio">{v.ratio}</td>
+              </tr>); })}
+          </tbody>
+        </table>
+      </div>
+      <p id="admin-status" class="muted" role="status"></p>
+      <div class="actions">
+        <button class="primary js-only" type="submit">{L(s.previewBtn)}</button>
+        <button class="js-only" type="button" id="admin-download">{L(s.download)}</button>
+        <button class="js-only" type="button" id="admin-copy">{L(s.copy)}</button>
+        <button class="js-only" type="button" id="admin-reset">{L(s.reset)}</button>
+      </div>
+      <details class="admin-json"><summary>{L(s.current)} · src/data/credit-settings.json</summary><pre id="admin-json">{JSON.stringify(credits, null, 2)}</pre></details>
+    </form>
+    <section class="section">
+      <h2>{L(s.publish)}</h2>
+      <ol class="how-steps">
+        <li>{L(s.p1)}</li>
+        <li>{L(s.p2)} <a href={editUrl} target="_blank" rel="noopener">src/data/credit-settings.json ↗</a></li>
+        <li>{L(s.p3)}</li>
+        <li>{L(s.p4)}</li>
+      </ol>
+    </section>
+  </article>
+</CookbookLayout>
+<script>
+  import { personas, isLocale, type Persona } from '../../../lib/schema';
+  import { formatRun, runEconomics, validateAssumptions, type Assumptions } from '../../../lib/benefits';
+  import { getAssumptions, applyAssumptions } from '../../../lib/assumptions-store';
+  import published from '../../../data/credit-settings.json';
+  function setup(): void {
+    const root = document.querySelector<HTMLElement>('[data-admin]');
+    const form = document.querySelector<HTMLFormElement>('#admin-form');
+    const status = document.getElementById('admin-status');
+    const pre = document.getElementById('admin-json');
+    const locale = document.body.dataset.locale ?? '';
+    if (!root || !form || !status || !pre || !isLocale(locale)) return;
+    const input = (name: string) => form.querySelector<HTMLInputElement>(`[name="${name}"]`)!;
+    const current = getAssumptions();
+    input('creditPrice').value = String(current.creditPrice);
+    personas.forEach((p) => { input(p).value = String(current[`${p}Credits`]); });
+    const read = (): Assumptions => {
+      const next = { ...getAssumptions(), creditPrice: input('creditPrice').valueAsNumber };
+      personas.forEach((p: Persona) => { next[`${p}Credits`] = input(p).valueAsNumber; });
+      return next;
+    };
+    const json = (a: Assumptions): string => JSON.stringify({
+      creditPrice: a.creditPrice,
+      creditsPerRun: Object.fromEntries(personas.map((p) => [p, a[`${p}Credits`]])),
+      updated: new Date().toISOString().slice(0, 10),
+    }, null, 2) + '\n';
+    const render = (): boolean => {
+      const a = read();
+      const issues = validateAssumptions(a).filter((i) => i.field === 'creditPrice' || i.field.endsWith('Credits'));
+      form.querySelectorAll('input').forEach((el) => {
+        const id = el.name === 'creditPrice' ? 'creditPrice' : `${el.name}Credits`;
+        el.setAttribute('aria-invalid', String(issues.some((i) => i.field === id)));
+      });
+      if (issues.length) { status.textContent = root.dataset.msgInvalid ?? ''; return false; }
+      status.textContent = '';
+      form.querySelectorAll<HTMLElement>('[data-admin-row]').forEach((row) => {
+        const v = formatRun(runEconomics(row.dataset.adminRow as Persona, a), locale);
+        row.querySelectorAll<HTMLElement>('[data-admin-key]').forEach((cell) => { cell.textContent = v[cell.dataset.adminKey!] ?? ''; });
+        row.dataset.below = v.below;
+      });
+      pre.textContent = json(a);
+      return true;
+    };
+    form.addEventListener('input', render);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!render()) return;
+      applyAssumptions(read());
+      status.textContent = root.dataset.msgApplied ?? '';
+    });
+    document.getElementById('admin-download')?.addEventListener('click', () => {
+      if (!render()) return;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([json(read())], { type: 'application/json' }));
+      link.download = 'credit-settings.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    });
+    document.getElementById('admin-copy')?.addEventListener('click', async () => {
+      if (!render()) return;
+      try { await navigator.clipboard.writeText(json(read())); status.textContent = root.dataset.msgCopied ?? ''; }
+      catch { status.textContent = json(read()); }
+    });
+    document.getElementById('admin-reset')?.addEventListener('click', () => {
+      input('creditPrice').value = String(published.creditPrice);
+      personas.forEach((p) => { input(p).value = String(published.creditsPerRun[p]); });
+      render();
+    });
+    render();
+  }
+  document.addEventListener('astro:page-load', setup);
+</script>

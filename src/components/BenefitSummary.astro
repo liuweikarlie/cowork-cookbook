@@ -1,0 +1,41 @@
+---
+import type { Locale, Persona } from '../lib/schema';
+import { calculate, defaults, money, wholeMoney, narrative, number } from '../lib/benefits';
+import { ui } from '../i18n';
+import { releaseReview } from '../data/release';
+interface Props { locale: Locale; persona: Persona; deckHeadline?: string; measures?: string; }
+const { locale, persona, deckHeadline, measures } = Astro.props;
+const result = calculate(persona, defaults);
+---
+<div class="benefit" data-benefit={persona}>
+  <p class="eyebrow">{ui(locale,'valueQuestion')}</p>
+  <h3>{ui(locale, 'estimate')}</h3>
+  <div class="benefit-total" data-benefit-total>{wholeMoney(result.total, locale)}</div>
+  <p class="benefit-scope">{ui(locale,'scope')}</p>
+  <div class="estimate-inputs" aria-label={ui(locale,'settings')}>
+    <div><strong data-benefit-licensed>{number(defaults[`${persona}Users`],locale)}</strong><span>{ui(locale,'scopeUsers')}</span></div>
+    <div><strong data-benefit-adoption>{number(defaults.activeRate,locale)}%</strong><span>{ui(locale,'scopeAdoption')}</span></div>
+    <div><strong data-benefit-risk>{number(defaults.riskReduction,locale)}%</strong><span>{ui(locale,'scopeRisk')}</span></div>
+  </div>
+  {deckHeadline && <p class="deck-figure"><small>{ui(locale,'deckFigure')} <strong>{deckHeadline}</strong> — {ui(locale,'deckFigureNote')}</small></p>}
+  {measures && <div class="benefit-measures"><span>{ui(locale,'measuresLabel')}</span><p>{measures}</p></div>}
+  <span class="estimate-status" data-benefit-status>{ui(locale, 'baseline')}</span>
+  <button class="js-only value-action" data-open-settings={persona}>{ui(locale, 'personalize')} →</button>
+  <p class="estimate-disclaimer"><small>{ui(locale, releaseReview.financialModelApproved ? 'illustrativeReviewed' : 'illustrative')}<br />{ui(locale,'modelShort')}</small></p>
+  <noscript><p>{ui(locale, 'noJs')}</p></noscript>
+  <details class="benefit-method">
+    <summary>{ui(locale, 'formula')}</summary>
+    <p data-benefit-narrative>{narrative(result, locale)}</p>
+    <dl>
+      <dt>{ui(locale, 'hoursSaved')}</dt><dd data-benefit-hours>{number(result.hours, locale)}</dd>
+      <dt>{ui(locale, 'active')}</dt><dd data-benefit-active>{number(result.activeUsers, locale)}</dd>
+      <dt>{ui(locale, 'hourly')}</dt><dd data-benefit-hourly>{money(result.hourlyCost, locale)}</dd>
+      <dt>{ui(locale, 'retained')}</dt><dd data-benefit-retained>{number(result.retained * 100, locale)}%</dd>
+    </dl>
+    <ul class="component-list" data-benefit-components>
+      {result.components.map((part) => <li><strong>{part.label[locale]}: {money(part.value, locale)}</strong><br /><span class="formula-text">{part.expression} h × {money(result.hourlyCost, locale)}/h × {number(result.retained * 100, locale)}%</span></li>)}
+    </ul>
+    <p><small>{ui(locale, 'capacityOnly')}</small></p>
+    <p><small>{ui(locale, 'modelSource')}</small></p>
+  </details>
+</div>

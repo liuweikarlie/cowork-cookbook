@@ -1,0 +1,13 @@
+---
+import type { Locale } from '../lib/schema';
+import { ui } from '../i18n';
+interface Props { locale: Locale; }
+const { locale } = Astro.props;
+---
+<aside class="provenance" aria-label={ui(locale,'provenanceTitle')} data-source-provenance>
+  <h3>{ui(locale,'provenanceTitle')}</h3>
+  <div class="provenance-grid">
+    <div><strong>{ui(locale,'sourceConcept')}</strong><p>{ui(locale,'sourceConceptBody')}</p></div>
+    <div><strong>{ui(locale,'originalPrompt')}</strong><p>{ui(locale,'originalPromptBody')}</p></div>
+  </div>
+</aside>

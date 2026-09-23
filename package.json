@@ -1,0 +1,32 @@
+{
+  "name": "cowork-cookbook",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "check": "astro check",
+    "build": "npm run validate && astro build",
+    "validate": "tsx scripts/validate-content.ts",
+    "release:check": "tsx scripts/validate-content.ts --release",
+    "test": "tsx --test tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "7.3.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@playwright/test": "1.63.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

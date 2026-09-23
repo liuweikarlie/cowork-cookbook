@@ -1,0 +1,57 @@
+---
+import { getCollection } from 'astro:content';
+import CookbookLayout from '../../layouts/CookbookLayout.astro';
+import { locales, text, type Locale } from '../../lib/schema';
+import { ui, personaLabels, recipeSearchText } from '../../i18n';
+import { recipeUrl, url } from '../../lib/urls';
+import { releaseReady } from '../../lib/publication';
+import { calculate, defaults, wholeMoney, runEconomics, formatRun } from '../../lib/benefits';
+export function getStaticPaths() { return locales.map((locale) => ({ params: { locale }, props: { locale } })); }
+const { locale } = Astro.props as { locale: Locale };
+const recipes = (await getCollection('recipes')).map((entry) => entry.data).sort((a,b) => a.order - b.order);
+const heading = text('Less time assembling work.', '少花時間拼湊資料，', '少花时间拼凑资料，');
+const accent = text('More time moving it forward.', '多花時間推進工作。', '多花时间推进工作。');
+---
+<CookbookLayout locale={locale} title={ui(locale, 'library')}>
+  <header class="recipe-hero library-hero">
+    <div class="hero-copy">
+    <p class="eyebrow">MICROSOFT 365 COPILOT COWORK</p>
+    <h1>{heading[locale]}<br /><span class="hero-accent">{accent[locale]}</span></h1>
+    <p class="lead">{text('Five real work situations, each with the value it could unlock, the prompt to paste into Copilot Cowork, and what to check before you approve.', '五個真實工作情境：每個都列出可釋放的價值、要貼到 Copilot Cowork 的提示詞，以及核准前要檢查的重點。', '五个真实工作场景：每个都列出可释放的价值、要粘贴到 Copilot Cowork 的提示词，以及批准前要检查的重点。')[locale]}</p>
+    <div class="actions"><a class="button primary" href="#library-heading">{ui(locale, 'library')} ↓</a><a class="quiet-link" href={url(`${locale}/getting-started/`)}>{ui(locale, 'start')} →</a></div>
+    </div>
+    <img class="hero-logo" src={url('cowork-logo.png')} alt="Microsoft 365 Copilot Cowork" width="400" height="300" />
+  </header>
+  <section class="intro-explainer" aria-labelledby="new-heading">
+    <h2 id="new-heading">{ui(locale,'newTitle')}</h2>
+    <div class="explainer-grid">
+      <div><span class="explainer-icon" aria-hidden="true">⇄</span><h3>{ui(locale,'new1Title')}</h3><p>{ui(locale,'new1Body')}</p></div>
+      <div><span class="explainer-icon" aria-hidden="true">≡</span><h3>{ui(locale,'new2Title')}</h3><p>{ui(locale,'new2Body')}</p></div>
+      <div><span class="explainer-icon" aria-hidden="true">✓</span><h3>{ui(locale,'new3Title')}</h3><p>{ui(locale,'new3Body')}</p></div>
+    </div>
+    <h3 class="how-heading">{ui(locale,'howTitle')}</h3>
+    <ol class="how-steps">{(['how1','how2','how3','how4','how5'] as const).map((key) => <li>{ui(locale,key)}</li>)}</ol>
+  </section>
+  {!releaseReady && <details class="preview-notice"><summary>{ui(locale, 'previewShort')}</summary><p>{ui(locale, 'previewNotice')}</p></details>}
+  <section class="section" aria-labelledby="library-heading">
+    <div class="actions" style="justify-content:space-between">
+      <h2 id="library-heading">{ui(locale, 'library')}</h2>
+      <label>{ui(locale, 'filters')} <select id="complexity-filter"><option value="">{ui(locale, 'all')}</option>{(['low-medium','medium','high'] as const).map((value) => <option value={value}>{ui(locale, value)}</option>)}</select></label>
+    </div>
+    <p class="muted">{text('Choose the situation that sounds most like your working day.', '選擇最像你日常工作的情境。', '选择最像你日常工作的场景。')[locale]}</p>
+    <div class="card-grid">
+      {recipes.map((recipe) => <article class="card recipe-card" data-recipe-card data-complexity={recipe.complexity} data-search={recipeSearchText(recipe, locale)}>
+        <div class="actions" style="justify-content:space-between"><span class="eyebrow">{personaLabels[recipe.persona][locale]}</span><span class="recipe-number">{String(recipe.order).padStart(2,'0')}</span></div>
+        <h2><a href={recipeUrl(locale, recipe.id)}>{recipe.hook[locale]}</a></h2>
+        <p class="muted">{recipe.before[locale]}</p>
+        <div class="card-deliverables"><span class="eyebrow">{ui(locale,'takeaway')}</span><ul class="artifact-list">{recipe.artifacts.map((artifact) => <li>{artifact[locale]}</li>)}</ul></div>
+        <div class="card-value" data-benefit={recipe.persona}><span>{ui(locale,'cardValue')}</span><strong data-benefit-total>{wholeMoney(calculate(recipe.persona, defaults).total, locale)}</strong></div>
+        <p class="card-run" data-run={recipe.persona}>{ui(locale,'cardRun')} <b data-run-key="cost-run">{formatRun(runEconomics(recipe.persona, defaults), locale)['cost-run']}</b> · {ui(locale,'cardRunValue')} <b data-run-key="value-run">{formatRun(runEconomics(recipe.persona, defaults), locale)['value-run']}</b></p>
+        <div class="app-chips">{recipe.worksIn.map((app) => <span class="app-chip">{app}</span>)}</div>
+        <div class="card-footer"><span class="badge">{ui(locale, recipe.complexity)}</span><a href={recipeUrl(locale, recipe.id)} aria-label={`${ui(locale,'exploreCase')}: ${recipe.title[locale]}`}>{ui(locale, 'exploreCase')} →</a></div>
+      </article>)}
+    </div>
+    <p id="no-cards" hidden>{ui(locale, 'noResults')}</p>
+    <p class="pack-caption">{ui(locale,'deckOnly')}</p>
+  </section>
+</CookbookLayout>

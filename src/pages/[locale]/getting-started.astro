@@ -1,0 +1,63 @@
+---
+import CookbookLayout from '../../layouts/CookbookLayout.astro';
+import { locales, text as t, type Locale } from '../../lib/schema';
+import { ui } from '../../i18n';
+import { recipeUrl, url } from '../../lib/urls';
+import { releaseReady } from '../../lib/publication';
+export function getStaticPaths() { return locales.map((locale) => ({ params: { locale }, props: { locale } })); }
+const { locale } = Astro.props as { locale: Locale };
+const access = [
+  { media: 'video', src: 'access/1-toggle.mp4', poster: 'access/1-toggle-poster.webp',
+    title: t('1. Finding Cowork: the toggle', '1. 找到 Cowork：切換鈕', '1. 找到 Cowork：切换按钮'),
+    body: t('Open Microsoft 365 Copilot. The Cowork toggle sits at the top of the left navigation, next to Home. Select Cowork to switch into the experience.', '開啟 Microsoft 365 Copilot。Cowork 切換鈕位於左側導覽列頂端、「首頁」旁邊。選取 Cowork 即可進入。', '打开 Microsoft 365 Copilot。Cowork 切换按钮位于左侧导航栏顶端、“主页”旁边。选择 Cowork 即可进入。'),
+    check: t('You see the toggle → continue to 2 or 3.', '看到切換鈕 → 繼續第 2 或第 3 項。', '看到切换按钮 → 继续第 2 或第 3 项。') },
+  { media: 'image', src: 'access/2-ready.webp',
+    title: t('2. When Cowork is ready for you', '2. Cowork 已可使用', '2. Cowork 已可使用'),
+    body: t('Selecting it opens your personalized homepage with suggested tasks based on your recent work. You are ready — pick a recipe and start.', '選取後會開啟個人化首頁，並依你近期的工作提供建議任務。你已準備就緒，挑一份食譜開始吧。', '选择后会打开个性化主页，并按你近期的工作提供建议任务。你已准备就绪，挑一份指南开始吧。'),
+    check: t('✓ You have Cowork access.', '✓ 你已有 Cowork 存取權。', '✓ 你已有 Cowork 访问权限。') },
+  { media: 'image', src: 'access/3-request-access.webp',
+    title: t('3. When you need to request access', '3. 需要申請存取權', '3. 需要申请访问权限'),
+    body: t('If you can see the toggle but Cowork isn’t switched on for you yet, selecting it opens a short overview with a one-click Request access button. Once your request is approved, you’re ready to go.', '若看得到切換鈕但尚未為你開啟，選取後會顯示簡短介紹及一鍵「Request access」（申請存取）按鈕。申請獲核准後即可使用。', '若看得到切换按钮但尚未为你开启，选择后会显示简短介绍及一键“Request access”（申请访问）按钮。申请获批准后即可使用。'),
+    check: t('Select Request access, then wait for approval.', '選取 Request access，然後等待核准。', '选择 Request access，然后等待批准。') },
+  { media: 'video', src: 'access/4-limit.mp4', poster: 'access/4-limit-poster.webp',
+    title: t('4. When you reach a usage limit', '4. 達到使用上限', '4. 达到使用上限'),
+    body: t('If you reach your usage limit, select Request more to ask for more credits. When your admin approves, you are notified in the product and by email.', '達到使用上限時，選取「Request more」申請更多 Credits。管理員核准後，你會在產品內及電子郵件收到通知。', '达到使用上限时，选择“Request more”申请更多 Credits。管理员批准后，你会在产品内及电子邮件收到通知。'),
+    check: t('Select Request more, then wait for your admin.', '選取 Request more，然後等待管理員核准。', '选择 Request more，然后等待管理员批准。') },
+];
+const sections = [
+  { title: t('1. What is Copilot Cowork?', '1. 什麼是 Copilot Cowork？', '1. 什么是 Copilot Cowork？'), body: t('Microsoft 365 Copilot Cowork takes on multi-step work for you. You describe the outcome you want; Cowork gathers context from the Microsoft 365 apps and business systems you already have access to, works through the stages, and hands back a review-ready deliverable — a brief, dashboard, asset package, or report. (It is not Claude Cowork or GitHub Copilot.)', 'Microsoft 365 Copilot Cowork 可替你處理多步驟工作。你描述想要的結果，Cowork 便從你已有權限的 Microsoft 365 應用程式與業務系統蒐集背景、逐階段完成，並交回可審核的成果，例如摘要、儀表板、素材套件或報告。（這不是 Claude Cowork 或 GitHub Copilot。）', 'Microsoft 365 Copilot Cowork 可替你处理多步骤工作。你描述想要的结果，Cowork 便从你已有权限的 Microsoft 365 应用与业务系统收集背景、逐阶段完成，并交回可审核的成果，例如摘要、仪表板、素材包或报告。（这不是 Claude Cowork 或 GitHub Copilot。）') },
+  { title: t('2. What you need', '2. 你需要什麼', '2. 你需要什么'), body: ui(locale,'availability') },
+  { title: t('3. How each recipe works', '3. 每份食譜怎麼用', '3. 每份指南怎么用'), body: t('Every recipe follows the same path: the business problem, the estimated value, what you will get back, a “Before you start” checklist, then “Run it in Cowork” — open Cowork, fill in the [bracketed] placeholders, copy the prompt, follow the workflow stages, and review before you approve.', '每份食譜都依相同路徑：商業問題、預估價值、預期產出、「開始之前」檢查清單，接著「在 Cowork 中執行」：開啟 Cowork、填入 [方括號] 佔位符、複製提示詞、跟著流程階段，並在核准前審核。', '每份指南都遵循相同路径：业务问题、预估价值、预期产出、“开始之前”检查清单，接着“在 Cowork 中执行”：打开 Cowork、填入 [方括号] 占位符、复制提示词、跟着流程阶段，并在批准前审核。') },
+  { title: t('4. Stay in control', '4. 保持掌控', '4. 保持掌控'), body: ui(locale,'permissionNote') },
+  { title: t('5. Reading the value estimate', '5. 如何解讀價值估算', '5. 如何解读价值估算'), body: t('The dark value card shows how much the hours Cowork could save a whole team each year are worth, based on salary cost. Use “Personalize” to enter your own headcount and adoption. It is illustrative — not guaranteed savings or net ROI — and your inputs are never stored; they reset when you reload or close the page.', '深色價值卡估算 Cowork 能為整個職能釋放的年度工時價值。可用「個人化」輸入自己的人數與採用率。此為示意，並非保證節省或淨投資報酬率；輸入不會被儲存，重新載入或關閉頁面即重設。', '深色价值卡估算 Cowork 能为整个职能释放的年度工时价值。可用“个性化”输入自己的人数与采用率。此为示例，并非保证节省或净投资回报率；输入不会被存储，重新加载或关闭页面即重置。') },
+  { title: t('6. Reading cost vs value', '6. 如何解讀成本與價值', '6. 如何解读成本与价值'), body: t('Each recipe also compares one run, and one month of runs, against the estimated Cowork cost. Cowork is billed per use in Copilot Credits. The credits each run uses are an estimate set by the cookbook admin — check real usage with your admin or Microsoft’s Copilot Credit Estimator. A ratio below 1× means the run costs more than the time it saves, so use it where it saves more time.', '每份食譜也會比較單次及每月執行的價值與預估 Cowork 費用。Cowork 以 Copilot Credits 按用量計費。每次執行使用的 Credits 由食譜管理員設定為估計值，實際用量請向管理員確認或使用 Microsoft Copilot Credit 估算工具。比率低於 1× 表示費用高於省下時間的價值，請用在更省時的情況。', '每份指南也会比较单次及每月执行的价值与预估 Cowork 费用。Cowork 以 Copilot Credits 按用量计费。每次执行使用的 Credits 由指南管理员设定为估计值，实际用量请向管理员确认或使用 Microsoft Copilot Credit 估算工具。比率低于 1× 表示费用高于省下时间的价值，请用在更省时的情况。') },
+  { title: t('About this material', '關於本教材', '关于本教材'), body: ui(locale,'sourceLimit') },
+];
+---
+<CookbookLayout locale={locale} title={ui(locale,'start')} selected="getting-started" pagePath="getting-started/">
+  <article style="max-width:860px;margin:auto">
+    <p class="eyebrow">{ui(locale, 'start')}</p><h1>{t('Your first Cowork task in five minutes', '五分鐘完成第一個 Cowork 任務', '五分钟完成第一个 Cowork 任务')[locale]}</h1>
+    <p class="lead">{ui(locale, 'deckOnly')}</p>
+    {!releaseReady && <details class="preview-notice"><summary>{ui(locale,'previewShort')}</summary><p>{ui(locale,'previewNotice')}</p></details>}
+    {sections.slice(0,1).map((section) => <section class="section"><h2>{section.title[locale]}</h2><p>{typeof section.body === 'string' ? section.body : section.body[locale]}</p></section>)}
+    <section class="section access-check" id="access" aria-labelledby="access-heading">
+      <p class="eyebrow">{t('Before anything else', '開始之前', '开始之前')[locale]}</p>
+      <h2 id="access-heading">{t('Do you have Cowork? Check in one minute', '你有 Cowork 嗎？一分鐘檢查', '你有 Cowork 吗？一分钟检查')[locale]}</h2>
+      <p>{t('Open Microsoft 365 Copilot and look at the left navigation. Match what you see to one of these four screens.', '開啟 Microsoft 365 Copilot，看看左側導覽列，並對照以下四個畫面。', '打开 Microsoft 365 Copilot，看看左侧导航栏，并对照以下四个画面。')[locale]}</p>
+      <div class="access-grid">
+        {access.map((card) => <article class="access-card">
+          {card.media === 'video'
+            ? <div class="access-media"><video src={url(card.src)} poster={url(card.poster!)} autoplay muted loop playsinline preload="metadata" aria-label={card.title[locale]} data-motion></video></div>
+            : <a class="access-media" href={url(card.src)} data-enlarge><img src={url(card.src)} alt={card.title[locale]} loading="lazy" /><span class="zoom" aria-hidden="true">⤢</span></a>}
+          <h3>{card.title[locale]}</h3>
+          <p>{card.body[locale]}</p>
+          <p class="access-check-line">{card.check[locale]}</p>
+        </article>)}
+      </div>
+      <p class="access-missing"><strong>{t('Don’t see the Cowork toggle at all?', '完全看不到 Cowork 切換鈕？', '完全看不到 Cowork 切换按钮？')[locale]}</strong> {t('Contact your IT admin to get access — they control who can use Cowork.', '請聯絡 IT 管理員申請存取 — 由他們控管誰可使用 Cowork。', '请联系 IT 管理员申请访问 — 由他们控制谁可使用 Cowork。')[locale]}</p>
+      <p class="muted"><small>{t('Images and animations: Microsoft Adoption —', '圖片與動畫來源：Microsoft Adoption —', '图片与动画来源：Microsoft Adoption —')[locale]} <a href="https://adoption.microsoft.com/en-us/copilot/cowork/ai-user/" target="_blank" rel="noopener">adoption.microsoft.com/copilot/cowork</a></small></p>
+    </section>
+    {sections.slice(1).map((section) => <section class="section"><h2>{section.title[locale]}</h2><p>{typeof section.body === 'string' ? section.body : section.body[locale]}</p></section>)}
+    <a class="button primary" href={recipeUrl(locale,'customer-meeting-prep')}>{ui(locale,'begin')} →</a>
+  </article>
+</CookbookLayout>

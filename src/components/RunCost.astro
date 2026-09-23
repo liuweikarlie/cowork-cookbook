@@ -1,0 +1,46 @@
+---
+import type { Locale, Persona } from '../lib/schema';
+import { text } from '../lib/schema';
+import { defaults, formatRun, runEconomics } from '../lib/benefits';
+import { ui } from '../i18n';
+import { url } from '../lib/urls';
+import { adminEnabled } from '../lib/features';
+interface Props { locale: Locale; persona: Persona; }
+const { locale, persona } = Astro.props;
+const v = formatRun(runEconomics(persona, defaults), locale);
+const scope = {
+  executive: text('For one executive · one run each working day', '以一位主管計 · 每個工作日執行一次', '以一位管理者计 · 每个工作日执行一次'),
+  sales: text('For one seller · one run per customer meeting', '以一位銷售人員計 · 每次客戶會議執行一次', '以一位销售人员计 · 每次客户会议执行一次'),
+  marketing: text('For the marketing team · one run per campaign', '以整個行銷團隊計 · 每個活動執行一次', '以整个市场团队计 · 每个活动执行一次'),
+  service: text('For one service agent · one run per complex case', '以一位客服人員計 · 每宗複雜案件執行一次', '以一位客服人员计 · 每宗复杂案件执行一次'),
+  finance: text('For the finance team · one run per monthly close', '以整個財務團隊計 · 每次月結執行一次', '以整个财务团队计 · 每次月结执行一次'),
+}[persona][locale];
+const rows: [string, string, string][] = [
+  [ui(locale,'runTimeSaved'), 'hours-run', 'hours-month'],
+  [ui(locale,'runValue'), 'value-run', 'value-month'],
+  [ui(locale,'runCost'), 'cost-run', 'cost-month'],
+];
+---
+<section class="run-cost" data-run={persona} aria-labelledby={`run-cost-${persona}`}>
+  <div class="run-cost-head">
+    <div><p class="eyebrow">{ui(locale,'runEyebrow')}</p><h2 id={`run-cost-${persona}`}>{ui(locale,'runHeading')}</h2><p class="muted">{scope}</p></div>
+    <div class="run-ratio" data-below={v.below}><strong data-run-ratio>{v.ratio}</strong><span>{ui(locale,'runRatio')}</span></div>
+  </div>
+  <table class="run-table">
+    <thead><tr><th scope="col"><span class="sr-only">{ui(locale,'runMeasure')}</span></th><th scope="col">{ui(locale,'runOnce')}</th><th scope="col">{ui(locale,'runMonth')} <small>(≈ <span data-run-runs>{v.runs}</span> {ui(locale,'runRuns')})</small></th></tr></thead>
+    <tbody>
+      {rows.map(([label, once, month]) => <tr><th scope="row">{label}</th><td data-run-key={once}>{v[once]}</td><td data-run-key={month}>{v[month]}</td></tr>)}
+      <tr class="run-net"><th scope="row">{ui(locale,'runNet')}</th><td></td><td data-run-key="net-month">{v['net-month']}</td></tr>
+    </tbody>
+  </table>
+  <p class="run-break-even">{ui(locale,'runBreakEven1')} <strong><span data-run-key="break-even">{v['break-even']}</span> {ui(locale,'runMinutes')}</strong> {ui(locale,'runBreakEven2')}</p>
+  <details class="run-notes">
+    <summary>{ui(locale,'runHow')}</summary>
+    <ul>
+      <li>{ui(locale,'runNoteCredits')}</li>
+      <li>{ui(locale,'runNoteCautious')} <strong data-run-key="value-cautious">{v['value-cautious']}</strong>.</li>
+      <li><a href="https://aka.ms/CopilotCreditPlanningModel" target="_blank" rel="noopener">{ui(locale,'runEstimator')}</a> · <a href="https://learn.microsoft.com/microsoft-365/copilot/usage-based-billing-overview-copilot-credits" target="_blank" rel="noopener">{ui(locale,'runLearn')}</a></li>
+    </ul>
+  </details>
+  <p class="muted run-admin"><small>{ui(locale,'runAdminSet')}{adminEnabled && <> <a href={url(`${locale}/admin/`)}>{ui(locale,'adminLink')}</a></>}</small></p>
+</section>

@@ -1,0 +1,68 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import { getCollection } from 'astro:content';
+import type { Locale, Persona } from '../lib/schema';
+import { locales } from '../lib/schema';
+import { ui, localeNames } from '../i18n';
+import { homeUrl, url } from '../lib/urls';
+import ScenarioSidebar from '../components/ScenarioSidebar.astro';
+import AssumptionsPanel from '../components/AssumptionsPanel.astro';
+import '../styles/theme.css';
+import { releaseReady } from '../lib/publication';
+import { adminEnabled } from '../lib/features';
+interface Props { locale: Locale; title: string; selected?: string; persona?: Persona; pagePath?: string; }
+const { locale, title, selected, persona, pagePath = '' } = Astro.props;
+const entries = (await getCollection('recipes')).map((entry) => entry.data).sort((a,b) => a.order - b.order);
+---
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <script is:inline>
+      (() => {
+        const param = new URLSearchParams(window.location.search).get("scoutTheme");
+        const theme = param === "light" || param === "dark" ? param :
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+        document.documentElement.setAttribute("data-js", "");
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={ui(locale, 'tagline')} />
+    {!releaseReady && <meta name="robots" content="noindex,nofollow" />}
+    <title>{title} · {ui(locale, 'brand')}</title>
+    <link rel="icon" type="image/png" href={url('favicon.png')} />
+    <ClientRouter fallback="swap" />
+  </head>
+  <body data-locale={locale} data-persona={persona ?? 'executive'}>
+    <a class="skip" href="#main-content">{ui(locale, 'skip')}</a>
+    <header class="topbar">
+      <a class="brand" href={homeUrl(locale)}><img class="brand-logo" src={url('cowork-logo.png')} alt="" width="36" height="27" />{ui(locale, 'brand')}</a>
+      <div class="top-actions">
+        <button class="js-only" data-open-settings={persona ?? 'executive'}>{ui(locale, 'settings')}</button>
+        <details class="language-links">
+          <summary>{localeNames[locale]}</summary>
+          <ul>{locales.map((lang) => <li><a data-language-link href={url(`${lang}/${pagePath}`)} lang={lang} hreflang={lang} aria-current={lang === locale ? 'true' : undefined}>{localeNames[lang]}</a></li>)}</ul>
+        </details>
+        <button class="js-only" id="theme-toggle" aria-label={ui(locale, 'theme')}>◐</button>
+      </div>
+    </header>
+    <div class="shell">
+      <ScenarioSidebar locale={locale} recipes={entries} selected={selected} />
+      <main class="main-content" id="main-content" tabindex="-1">
+        <slot />
+        <footer class="footer">Microsoft 365 Copilot Cowork · {ui(locale, releaseReady ? 'verified' : 'preview')}<br />{ui(locale, 'availability')}{adminEnabled && <><br /><a class="footer-admin" href={url(`${locale}/admin/`)}>{ui(locale, 'adminLink')}</a></>}</footer>
+      </main>
+    </div>
+    <AssumptionsPanel locale={locale} persona={persona} />
+    <dialog class="image-dialog" id="image-dialog" aria-label={ui(locale, 'enlarge')}>
+      <button type="button" id="close-image">{ui(locale, 'close')}</button>
+      <img id="large-image" alt="" />
+      <a id="original-image" data-astro-reload>{ui(locale, 'original')}</a>
+    </dialog>
+    <p id="announcement" class="sr-only" aria-live="polite"></p>
+    <script>
+      import '../scripts/client';
+    </script>
+  </body>
+</html>

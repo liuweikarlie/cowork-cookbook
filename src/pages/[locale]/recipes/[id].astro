@@ -1,0 +1,99 @@
+---
+import { getCollection } from 'astro:content';
+import CookbookLayout from '../../../layouts/CookbookLayout.astro';
+import RecipeOutline from '../../../components/RecipeOutline.astro';
+import WalkthroughStep from '../../../components/WalkthroughStep.astro';
+import BenefitSummary from '../../../components/BenefitSummary.astro';
+import SourceProvenance from '../../../components/SourceProvenance.astro';
+import RunCost from '../../../components/RunCost.astro';
+import { locales, type Recipe, type Locale } from '../../../lib/schema';
+import { ui, personaLabels } from '../../../i18n';
+import { url, recipeUrl } from '../../../lib/urls';
+import { releaseReady } from '../../../lib/publication';
+export async function getStaticPaths() {
+  const entries = (await getCollection('recipes')).map((entry) => entry.data).sort((a,b) => a.order-b.order);
+  return locales.flatMap((locale) => entries.map((recipe, index) => ({
+    params: { locale, id: recipe.id },
+    props: { locale, recipe, previous: entries[index - 1], next: entries[index + 1] },
+  })));
+}
+const { locale, recipe, previous, next } = Astro.props as { locale: Locale; recipe: Recipe; previous?: Recipe; next?: Recipe };
+const placeholders = [...new Set(recipe.sourcePrompt.match(/\[[^\]]+\]/g) ?? [])];
+type Segment = { text: string; mark: boolean };
+const promptLines = recipe.sourcePrompt.split('\n').map((line) => {
+  const heading = line.length < 40 && line.trim().endsWith(':');
+  const segments: Segment[] = line.split(/(\[[^\]]+\])/).filter(Boolean).map((text) => ({ text, mark: /^\[[^\]]+\]$/.test(text) }));
+  return { heading, segments };
+});
+---
+<CookbookLayout locale={locale} title={recipe.title[locale]} selected={recipe.id} persona={recipe.persona} pagePath={`recipes/${recipe.id}/`}>
+  <div class="reading-layout">
+    <article>
+      <header class="recipe-hero outcome-hero">
+        <div class="recipe-meta"><span class="eyebrow">{personaLabels[recipe.persona][locale]}</span><span>{recipe.title[locale]}</span><span class="badge">{ui(locale, recipe.complexity)}</span></div>
+        <h1>{recipe.hook[locale]}</h1>
+        <p class="lead">{recipe.summary[locale]}</p>
+        <div class="app-chips"><span class="chip-label">{ui(locale,'worksIn')}</span>{recipe.worksIn.map((app) => <span class="app-chip">{app}</span>)}</div>
+      </header>
+      {!releaseReady && <details class="preview-notice"><summary>{ui(locale, 'previewShort')}</summary><p>{ui(locale, 'previewNotice')}</p></details>}
+      <section class="decision-zone" id="overview" data-outline-section aria-label={ui(locale,'overview')}>
+        <div class="business-story">
+          <h2>{ui(locale,'overview')}</h2>
+          <div class="story-chapter"><span class="story-index" aria-hidden="true">01</span><div><p class="eyebrow">{ui(locale,'familiar')}</p><h3>{recipe.before[locale]}</h3><p>{recipe.challenge[locale]}</p></div></div>
+          <div class="story-chapter"><span class="story-index" aria-hidden="true">02</span><div><p class="eyebrow">{ui(locale,'aimFor')}</p><h3>{recipe.after[locale]}</h3><p>{recipe.benefits[locale]}</p></div></div>
+          <div class="badges">{recipe.pillars.map((pillar) => <span class="badge">{ui(locale, pillar)}</span>)}</div>
+        </div>
+        <BenefitSummary locale={locale} persona={recipe.persona} deckHeadline={recipe.deckHeadline} measures={recipe.measures[locale]} />
+      </section>
+      <RunCost locale={locale} persona={recipe.persona} />
+      <section class="outcome-strip" aria-label={ui(locale,'takeaway')}>
+        <div><h2>{ui(locale,'takeaway')}</h2><ul class="artifact-list">{recipe.artifacts.map((artifact) => <li>{artifact[locale]}</li>)}</ul></div>
+        <div><a class="button primary" href="#walkthrough">{ui(locale,'usePrompt')} →</a><a class="quiet-link" href="#outputs">{ui(locale,'outputs')} ↓</a></div>
+      </section>
+      <section class="why-section"><h2>{ui(locale,'why')}</h2><p>{recipe.why[locale]}</p></section>
+      <RecipeOutline recipe={recipe} locale={locale} inline />
+      <section class="section" id="prepare" data-outline-section>
+        <h2>{ui(locale, 'prepare')}</h2>
+        <div class="checklist-card">
+          <div class="check-row"><span class="check-label">{ui(locale,'goal')}</span><p data-source-goal>{recipe.goal[locale]}</p></div>
+          <div class="check-row"><span class="check-label">{ui(locale,'worksIn')}</span><p class="app-chips">{recipe.worksIn.map((app) => <span class="app-chip">{app}</span>)}</p></div>
+          <div class="check-row"><span class="check-label">{ui(locale,'connectsTo')}</span><p>{recipe.sources[locale]}</p></div>
+          <div class="check-row"><span class="check-label">{ui(locale,'complexityLabel')}</span><p><span class="badge">{ui(locale, recipe.complexity)}</span> {recipe.prerequisites[locale]}</p></div>
+        </div>
+        <div class="review-callout"><strong>{ui(locale,'usageNote')}</strong><p>{ui(locale,'permissionNote')}</p><p class="muted"><small>{ui(locale,'availability')}</small></p></div>
+      </section>
+      <section class="section" id="walkthrough" data-outline-section>
+        <h2>{ui(locale, 'runTitle')}</h2>
+        <ol class="run-steps">
+          <li class="run-step"><span class="run-number" aria-hidden="true">1</span><div><h3>{ui(locale,'run1Title')}</h3><p>{ui(locale,'run1Body')}</p></div></li>
+          <li class="run-step"><span class="run-number" aria-hidden="true">2</span><div><h3>{ui(locale,'run2Title')}</h3><p>{ui(locale,'run2Body')}</p><p class="placeholder-chips" data-placeholders>{placeholders.map((item) => <mark>{item}</mark>)}</p></div></li>
+          <li class="run-step"><span class="run-number" aria-hidden="true">3</span><div class="run-wide"><h3>{ui(locale,'run3Title')}</h3><p>{ui(locale,'run3Body')}</p>
+            <div class="prompt-block">
+              <div class="prompt-bar"><span class="eyebrow">{ui(locale,'originalPrompt')}</span><button class="js-only" type="button" data-copy="prompt-source">{ui(locale,'copy')}</button></div>
+              <pre id="prompt-source" lang="en">{promptLines.map((line, index) => <>{line.heading ? <strong>{line.segments.map((s) => s.mark ? <mark>{s.text}</mark> : s.text)}</strong> : line.segments.map((s) => s.mark ? <mark>{s.text}</mark> : s.text)}{index < promptLines.length - 1 ? '\n' : ''}</>)}</pre>
+              <p class="prompt-foot"><small>{ui(locale,'copyExact')}</small></p>
+            </div></div></li>
+          <li class="run-step" id="workflow" data-outline-section><span class="run-number" aria-hidden="true">4</span><div class="run-wide"><h3>{ui(locale,'run4Title')}</h3><p>{ui(locale,'run4Body')}</p>
+            <ol class="stage-timeline">{recipe.steps.map((step,index) => <WalkthroughStep step={step} index={index} locale={locale} recipeId={recipe.id} />)}</ol>
+          </div></li>
+          <li class="run-step review-step"><span class="run-number" aria-hidden="true">5</span><div><h3>{ui(locale,'run5Title')}</h3><p><strong>{recipe.reviewGate[locale]}</strong></p><p>{ui(locale,'run5Body')}</p></div></li>
+        </ol>
+      </section>
+      <section class="section" id="outputs" data-outline-section>
+        <h2>{ui(locale, 'outputs')}</h2><p data-source-output>{recipe.outputs[locale]}</p>
+        {recipe.outputEvidence?.map((output) => <p style="margin-top:16px"><a class="button" href={url(`reference-outputs/${recipe.id}/${output.file}`)} download data-astro-reload>{ui(locale,'actualOutput')}</a><br /><small>{output.description[locale]}</small></p>)}
+      </section>
+      <section class="section source-notes" id="source-notes" data-outline-section>
+        <h2>{ui(locale, 'sourceNotes')}</h2>
+        <SourceProvenance locale={locale} />
+        <p class="muted"><small>{ui(locale,'sourceLimit')}</small></p>
+        <p class="muted"><small>{ui(locale,'sourceSlides')}: {recipe.slides.join('–')} · Nifty Fifty</small></p>
+      </section>
+      <nav class="next-prev" aria-label={ui(locale, 'library')}>
+        {previous && <a href={recipeUrl(locale, previous.id)}>← {ui(locale, 'previous')}<br />{previous.title[locale]}</a>}
+        {next && <a href={recipeUrl(locale, next.id)}>{ui(locale, 'next')} →<br />{next.title[locale]}</a>}
+      </nav>
+    </article>
+    <RecipeOutline recipe={recipe} locale={locale} />
+  </div>
+</CookbookLayout>

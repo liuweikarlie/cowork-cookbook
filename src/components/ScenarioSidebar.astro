@@ -1,0 +1,42 @@
+---
+import type { Locale, Recipe } from '../lib/schema';
+import { personas } from '../lib/schema';
+import { ui, personaLabels, recipeSearchText } from '../i18n';
+import { homeUrl, recipeUrl, url } from '../lib/urls';
+import { releaseReady } from '../lib/publication';
+interface Props { locale: Locale; recipes: Recipe[]; selected?: string; }
+const { locale, recipes, selected } = Astro.props;
+---
+<aside class="sidebar">
+  <details class="menu-disclosure" id="scenario-menu" open>
+    <summary>{ui(locale, 'menu')}</summary>
+    <button type="button" class="menu-backdrop" data-close-menu aria-label={ui(locale,'close')} tabindex="-1"></button>
+    <div class="menu-content">
+      <button type="button" class="js-only mobile-close" data-close-menu>{ui(locale,'close')} ×</button>
+      <div class="search-box">
+        <label for="scenario-search">{ui(locale, 'search')}</label>
+        <input id="scenario-search" type="search" autocomplete="off" />
+        <button type="button" data-clear-search class="js-only" hidden>{ui(locale, 'clear')}</button>
+        <p class="muted" id="search-count" role="status"></p>
+      </div>
+      <nav aria-label={ui(locale, 'menu')}>
+        <a class="nav-link" href={url(`${locale}/getting-started/`)} aria-current={selected === 'getting-started' ? 'page' : undefined}>{ui(locale, 'start')}</a>
+        <a class="nav-link" href={homeUrl(locale)} aria-current={!selected ? 'page' : undefined}>{ui(locale, 'library')}</a>
+        {personas.map((persona) => (
+          <details class="persona-group" data-persona-group open>
+            <summary>{personaLabels[persona][locale]}</summary>
+            {recipes.filter((recipe) => recipe.persona === persona).map((recipe) => (
+              <a class="nav-link" href={recipeUrl(locale, recipe.id)} data-scenario-link
+                data-search={recipeSearchText(recipe, locale)}
+                aria-current={recipe.id === selected ? 'page' : undefined}>
+                {recipe.title[locale]}
+              </a>
+            ))}
+          </details>
+        ))}
+        <p id="no-results" hidden>{ui(locale, 'noResults')}</p>
+      </nav>
+      <p class="sidebar-note">{ui(locale, releaseReady ? 'verified' : 'preview')} · {String(recipes.length).padStart(2,'0')}<br />{ui(locale, 'tagline')}</p>
+    </div>
+  </details>
+</aside>

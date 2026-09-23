@@ -1,0 +1,11 @@
+{
+  "creditPrice": 0.01,
+  "creditsPerRun": {
+    "executive": 300,
+    "sales": 500,
+    "marketing": 500,
+    "service": 500,
+    "finance": 800
+  },
+  "updated": "illustrative defaults"
+}

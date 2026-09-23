@@ -1,0 +1,58 @@
+---
+import type { Locale, Persona } from '../lib/schema';
+import { personas } from '../lib/schema';
+import { fields, defaults } from '../lib/benefits';
+import { ui, personaLabels } from '../i18n';
+interface Props { locale: Locale; persona?: Persona; }
+const { locale, persona = 'executive' } = Astro.props;
+---
+<dialog class="settings-dialog" id="assumptions-dialog" aria-labelledby="settings-title">
+  <div class="dialog-title">
+    <h2 id="settings-title">{ui(locale, 'settings')}</h2>
+    <button type="button" data-close-settings aria-label={ui(locale, 'close')}>×</button>
+  </div>
+  <p class="muted">{ui(locale, 'memory')}</p>
+  <p>{ui(locale, 'fixedLab')}</p>
+  <form id="assumptions-form" novalidate>
+    <label for="settings-persona">{ui(locale, 'personaInputs')}</label>
+    <select id="settings-persona" name="persona">
+      {personas.map((p) => <option value={p} selected={p === persona}>{personaLabels[p][locale]}</option>)}
+    </select>
+    {(['shared', ...personas] as const).map((group) => (
+      <fieldset data-field-group={group} hidden={group !== 'shared' && group !== persona}>
+        <legend>{group === 'shared' ? ui(locale, 'shared') : personaLabels[group][locale]}</legend>
+        {fields.filter((field) => field.group === group && !field.advanced && !field.admin).map((field) => (
+          <div class="field">
+            <label for={`input-${field.id}`}>{field.label[locale]}<small>{field.unit} · {field.min}–{field.max}</small></label>
+            <input id={`input-${field.id}`} name={field.id} type="number" min={field.min} max={field.max} step={field.step} value={defaults[field.id]} required aria-describedby={`error-${field.id}`} />
+            <p class="error" id={`error-${field.id}`} hidden></p>
+          </div>
+        ))}
+        {group !== 'shared' && (
+          <details>
+            <summary>{ui(locale, 'advanced')}</summary>
+            {fields.filter((field) => field.group === group && field.advanced && !field.admin).map((field) => (
+              <div class="field">
+                <label for={`input-${field.id}`}>{field.label[locale]}<small>{field.unit} · {field.min}–{field.max}</small></label>
+                <input id={`input-${field.id}`} name={field.id} type="number" min={field.min} max={field.max} step={field.step} value={defaults[field.id]} required aria-describedby={`error-${field.id}`} />
+                <p class="error" id={`error-${field.id}`} hidden></p>
+              </div>
+            ))}
+          </details>
+        )}
+      </fieldset>
+    ))}
+    <div class="draft-preview">
+      <strong>{ui(locale, 'draft')}</strong>
+      <p id="draft-total"></p>
+      <p id="draft-derived" class="muted"></p>
+      <p id="settings-errors" class="error" role="status"></p>
+    </div>
+    <p class="muted"><small>{ui(locale, 'modelSource')}</small></p>
+    <div class="settings-footer">
+      <button class="primary" type="submit">{ui(locale, 'apply')}</button>
+      <button type="button" data-close-settings>{ui(locale, 'cancel')}</button>
+      <button type="button" id="reset-draft">{ui(locale, 'reset')}</button>
+    </div>
+  </form>
+</dialog>

@@ -1,0 +1,25 @@
+---
+import type { Recipe, Locale } from '../lib/schema';
+import { ui } from '../i18n';
+import { url } from '../lib/urls';
+interface Props { step: Recipe['steps'][number]; index: number; recipeId: string; locale: Locale; }
+const { step, index, recipeId, locale } = Astro.props;
+const title = step.title[locale];
+const arrow = title.indexOf('→');
+const verb = arrow > 0 ? title.slice(0, arrow).trim() : '';
+const rest = arrow > 0 ? title.slice(arrow + 1).trim() : title;
+---
+<li class="step" id={step.id} data-outline-section>
+  <span class="step-number" aria-hidden="true">{index + 1}</span>
+  <div class="step-body">
+    <h4 data-source-workflow>{verb && <><b class="stage-verb">{verb}</b> → </>}{rest}</h4>
+    {step.evidence.length ? step.evidence.map((image) => (
+      <figure>
+        <a href={url(`screenshots/${recipeId}/${image.file}`)} data-astro-reload data-enlarge aria-label={ui(locale, 'enlarge')}>
+          <img src={url(`screenshots/${recipeId}/${image.file}`)} alt={image.alt[locale]} loading="lazy" />
+        </a>
+        <figcaption>{image.caption[locale]} · {image.capturedAt} · {image.platform}</figcaption>
+      </figure>
+    )) : <p class="capture-pending" title={ui(locale, 'noFake')}>📷 {ui(locale, 'stagePending')}</p>}
+  </div>
+</li>

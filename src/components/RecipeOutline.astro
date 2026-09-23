@@ -1,0 +1,19 @@
+---
+import type { Locale, Recipe } from '../lib/schema';
+import { ui, type MessageKey } from '../i18n';
+interface Props { recipe: Recipe; locale: Locale; inline?: boolean; }
+const { recipe, locale, inline = false } = Astro.props;
+const sections: [string, MessageKey][] = [['overview','overview'],['prepare','prepare'],['walkthrough','steps'],['workflow','workflow'],['outputs','outputs'],['source-notes','sourceNotes']];
+---
+{inline ? <details class="inline-outline">
+  <summary>{ui(locale, 'outline')}</summary>
+  <nav aria-label={ui(locale, 'outline')}>
+    {sections.map(([id, key]) => <a href={`#${id}`}>{ui(locale, key)}</a>)}
+  </nav>
+</details> : <aside class="outline">
+  <strong>{ui(locale, 'outline')}</strong>
+  <nav aria-label={ui(locale, 'outline')}>
+    {sections.map(([id, key]) => <a href={`#${id}`} data-outline-link>{ui(locale, key)}</a>)}
+    {recipe.steps.map((step, index) => <a href={`#${step.id}`} data-outline-link>{index + 1}. {step.title[locale]}</a>)}
+  </nav>
+</aside>}
