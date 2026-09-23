@@ -81,7 +81,9 @@ Run `npm run release:check`. It currently **fails by design**, enumerating missi
 
 The configured destination is `https://liuweikarlie.github.io/cowork-cookbook/`. No remote repository has been created. The existing personal homepage must remain unchanged.
 
-Pushing to `main` in `liuweikarlie/cowork-cookbook` runs **Deploy cookbook to GitHub Pages** (Pages source: GitHub Actions). The workflow builds with `COOKBOOK_ADMIN=off`, so the `/admin/` page and its links are left out of the public site; local builds keep them. Keep a known-good commit for rollback; redeploy that revision rather than editing generated HTML.
+The live site is served by GitHub Pages from the `gh-pages` branch of `liuweikarlie/cowork-cookbook`. To redeploy: run `$env:COOKBOOK_ADMIN='off'; npm run build`, then publish the contents of `dist/` (plus an empty `.nojekyll`) as the new `gh-pages` commit. `COOKBOOK_ADMIN=off` leaves the `/admin/` page and its links out of the public site; local builds keep them.
+
+Optional: `.github/workflows/deploy-pages.yml` automates the same build on every push to `main`. It is kept locally until the pushing account has the GitHub `workflow` token scope (`gh auth refresh -s workflow`); after pushing it, set **Settings → Pages → Source** to **GitHub Actions**. Keep a known-good commit for rollback.
 
 ## Maintainer guides
 
